@@ -4,18 +4,15 @@
 #include <semphr.h>
 
 //define task handles
-TaskHandle_t task_Handler;
+TaskHandle_t writeTask_Handler;
+TaskHandle_t readTask_Handler;
 
-// Definir la variable de cola 
+// Definir la variable de cola
 QueueHandle_t queue;
 int queueSize = 4;
 
-
 // define Tasks
-void writeTask1( void *pvParameters );
-void writeTask2( void *pvParameters );
-void writeTask3( void *pvParameters );
-void writeTask4( void *pvParameters );
+void writeTask( void *pvParameters );
 void readTask( void *pvParameters );
 
 // the setup function runs once when you press reset or power the board
@@ -23,6 +20,8 @@ void setup() {
 
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
+
+  randomSeed(analogRead(A0));
 
   queue = xQueueCreate( queueSize, sizeof( int ) );
 
@@ -36,28 +35,7 @@ void setup() {
 
   // Now set up two Tasks to run independently.
   xTaskCreate(
-    writeTask1
-    ,  "writer" // A name just for humans
-    ,  256  // This stack size can be checked & adjusted by reading the Stack Highwater
-    ,  NULL //Parameters for the task
-    ,  1  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
-    ,  NULL ); //Task Handle
-  xTaskCreate(
-    writeTask2
-    ,  "writer" // A name just for humans
-    ,  256  // This stack size can be checked & adjusted by reading the Stack Highwater
-    ,  NULL //Parameters for the task
-    ,  1  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
-    ,  NULL ); //Task Handle
-  xTaskCreate(
-    writeTask3
-    ,  "writer" // A name just for humans
-    ,  256  // This stack size can be checked & adjusted by reading the Stack Highwater
-    ,  NULL //Parameters for the task
-    ,  1  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
-    ,  NULL ); //Task Handle
-  xTaskCreate(
-    writeTask4
+    writeTask
     ,  "writer" // A name just for humans
     ,  256  // This stack size can be checked & adjusted by reading the Stack Highwater
     ,  NULL //Parameters for the task
@@ -84,67 +62,35 @@ void loop()
 
 
 
-void writeTask1( void *pvParameters )  // This is a Task.
+void writeTask( void *pvParameters )  // This is a Task.
 {
 
-  int value = 1;
+  int value = random(0, 9);
   for (;;) {
-    if (xQueueSendToBack(queue, &value, 1000) != pdTRUE) {
-      printf("Error writeTask1");
+    if (sizeof(queue) / sizeof(int) < 4) {
+      if (xQueueSendToBack(queue, &value, 1000) != pdTRUE) {
+        printf("Error writeTask1");
+      }
+      else {
+        //Serial.print((sizeof(queue)/sizeof(int)));
+      }
+      //vTaskDelay(100);
     }
-    vTaskDelay(1000);
-  }
-}
-
-void writeTask2( void *pvParameters )  // This is a Task.
-{
-
-  int value = 2;
-  for (;;) {
-    if (xQueueSendToBack(queue, &value, 1000) != pdTRUE) {
-      printf("Error writeTask2");
-    }
-    vTaskDelay(1000);
-  }
-}
-
-void writeTask3( void *pvParameters )  // This is a Task.
-{
-
-  int value = 3;
-  for (;;) {
-    if (xQueueSendToBack(queue, &value, 1000) != pdTRUE) {
-      printf("Error writeTask3");
-    }
-    vTaskDelay(1000);
-  }
-}
-
-void writeTask4( void *pvParameters )  // This is a Task.
-{
-
-  int value = 4;
-  for (;;) {
-    if (xQueueSendToBack(queue, &value, 1000) != pdTRUE) {
-      printf("Error writeTask4");
-    }
-    vTaskDelay(1000);
   }
 }
 
 void readTask( void *pvParameters )  // This is a Task.
 {
-  int i;
-  int valueTotal;
-
+  int valueTotal = -1;
+  
   for (;;) {
-    if (xQueueReceive(queue, &valueTotal, 4000) != pdTRUE) {
-     // if (len(queue) == 4) {
-      //FALTA LEER LOS VALORES EN COLA Y VER SI USAR INT U OTRA OPCION
-     // }
-    }
-    else {
-      printf("Fallo al leer la cola.");
+    if (uxQueueSpacesAvailable(queue) == 0) {
+      while(uxQueueSpacesAvailable(queue) < 4) {
+        if (xQueueReceive(queue, &valueTotal, 4000) == pdPASS) {
+          Serial.print(valueTotal);
+        }
+      }
+      Serial.println();
     }
   }
 }

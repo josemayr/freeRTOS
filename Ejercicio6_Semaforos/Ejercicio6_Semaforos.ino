@@ -2,18 +2,22 @@
 #include "semphr.h"
 #include "task.h"
 
-#define PIN_PULSADOR 1
+#define PIN_PULSADOR 2
 
-//COMO RECIBIMOS EL PULSADOR???
+bool pressed = false;
 
+void pulsadorISR(){
+  pressed = true;
+  Serial.println(pressed);
+}
 
-//manejador para el semรกforo como variable global
+//manejador para el semaforo como variable global
 SemaphoreHandle_t xSemaphore = NULL;
 
 void setup() {
   Serial.begin(9600);
 
-  // se crea el semรกforo binario
+  // se crea el semaforo binario
   xSemaphore = xSemaphoreCreateBinary();
 
   xTaskCreate(taskPrint,
@@ -24,6 +28,8 @@ void setup() {
               NULL);
               
   xSemaphoreGive(xSemaphore);
+
+  attachInterrupt(digitalPinToInterrupt(PIN_PULSADOR),pulsadorISR,RISING);
 }
 
 void loop() {}
@@ -31,10 +37,10 @@ void loop() {}
 void taskPrint(void *pvParameters)
 {
   for (;;) {
-    // Espero por la notificaciรณn de la ISR
-    if (xSemaphoreTake(xSemaphore, portMAX_DELAY) == pdTRUE) {
+    if (pressed && (xSemaphoreTake(xSemaphore, portMAX_DELAY) == pdTRUE)) {
       printf("Pulsador pulsado.\n");
       xSemaphoreGive(xSemaphore);
+      pressed = false;
       vTaskDelay(1);
     }
   }

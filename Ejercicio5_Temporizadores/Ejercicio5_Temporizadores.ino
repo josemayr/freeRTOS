@@ -37,7 +37,7 @@ void setup() {
                                   vTimerAutoReloadCallback);
 
   /* Check the software timers were created. */
-  if ( ( xOneShotTimer != NULL ) && ( xAutoReloadTimer != NULL ) )
+  if ( ( xTimerOneShot != NULL ) && ( xTimerAutoReload != NULL ) )
   {
     xTimer1Started = xTimerStart( xTimerOneShot, 0 );
     xTimer2Started = xTimerStart( xTimerAutoReload, 0 );
@@ -57,9 +57,9 @@ void loop()
 
 static void vTimerOneShotCallback( TimerHandle_t xTimer )
 {
-  Serial.print("*");
+  Serial.println("*");
 }
 static void vTimerAutoReloadCallback( TimerHandle_t xTimer )
 {
-  Serial.print("%");
+  Serial.println("%");
 }
